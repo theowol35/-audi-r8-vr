@@ -1,0 +1,45 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Black R8 V10 Spyder VR</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#080b10;color:white;font-family:system-ui}canvas{display:block;width:100%;height:100%;touch-action:none}
+#panel{position:fixed;bottom:4%;left:50%;transform:translateX(-50%);display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:95%;z-index:2}
+button{border:1px solid #ffffff66;border-radius:13px;padding:12px 15px;background:#101821dd;color:white;font-size:15px;font-weight:650}
+#status{position:fixed;top:3%;left:50%;transform:translateX(-50%);background:#101821bb;border:1px solid #ffffff33;border-radius:12px;padding:10px;text-align:center;z-index:2}
+#cover{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 40%,#384353,#080b10 70%);z-index:4;padding:20px;text-align:center}
+.card{max-width:520px;background:#0b111bdd;border:1px solid #ffffff2a;border-radius:20px;padding:26px}#cover button{background:#9d1018;border:0;padding:15px 22px}
+small{opacity:.7}
+</style></head><body>
+<div id="status">BLACK R8 V10 SPYDER · VR COCKPIT</div>
+<div id="panel"><button id="engine">🔑 Motor starten</button><button id="reset">🧭 Ansicht zurücksetzen</button><button id="vr">🥽 VR-Modus starten</button></div>
+<div id="cover"><div class="card"><h1>BLACK R8 V10 SPYDER</h1><p>Dein erstes Cockpit-Erlebnis: Schau dich um und starte den Motor.</p><p><small>Früher 3D-Prototyp. Der Motorsound ist vorerst synthetisch, kein originaler Audi-Sound.</small></p><button id="enter">Erlebnis starten</button></div></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x9ab0c4);scene.fog=new THREE.Fog(0x9ab0c4,18,85);
+const camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.05,200);camera.position.set(0,1.55,.05);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.xr.enabled=true;document.body.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xc8ddff,0x27211c,2));const sun=new THREE.DirectionalLight(0xffd9a3,3);sun.position.set(-8,14,4);scene.add(sun);
+const mat=(c,m=0,r=.55)=>new THREE.MeshStandardMaterial({color:c,metalness:m,roughness:r});
+const black=mat(0x080b10,.75,.23),leather=mat(0x17191d,.05,.8),trim=mat(0x292d32,.65,.35),screen=mat(0x0a6571,.35,.2),red=mat(0x9d1018,.4,.3);
+function box(n,x,y,z,sx,sy,sz,ma){let o=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),ma);o.name=n;o.position.set(x,y,z);o.castShadow=true;scene.add(o);return o}
+box('ground',0,-.12,-18,160,.2,160,mat(0x26322d));box('driveway',0,-.005,-4,14,.04,40,mat(0x4a4c4c));
+box('villa facade',0,1.5,-17,14,3.2,.35,mat(0xc5c2b8));box('villa roof',0,3.25,-17,15,.22,1.1,mat(0x292d32));
+for(let x of [-4.8,-1.6,1.6,4.8]){box('window',x,1.55,-16.79,1.25,1.65,.04,mat(0x273c4a));box('warm window',x,1.55,-16.75,1.05,1.4,.02,mat(0xf1c987))}
+box('seat back',0,1.15,.48,.8,1,.22,leather);box('seat base',0,.68,.22,.86,.22,.8,leather);
+box('left door',-.92,.88,-.25,.18,.45,1.25,leather);box('right door',.92,.88,-.25,.18,.45,1.25,leather);
+box('dashboard',0,1.02,-.72,1.9,.27,.48,black);box('dash trim',0,1.13,-.7,1.75,.035,.42,trim);
+box('instrument binnacle',-.43,1.25,-.58,.58,.22,.22,black);box('instrument screen',-.43,1.25,-.705,.45,.13,.018,screen);
+box('center display',.28,1.24,-.67,.32,.28,.04,screen);box('center console',.28,.77,-.18,.46,.18,.8,trim);
+for(let i=0;i<12;i++){let a=i*Math.PI/6;let o=box('steering rim',-.43+Math.cos(a)*.24,1.12+Math.sin(a)*.24,-.38,.09,.045,.07,black);o.rotation.z=a}
+box('wheel hub',-.43,1.12,-.41,.19,.14,.09,trim);
+for(let i=0;i<5;i++)box('vent',-.7+i*.12,1.04,-.968,.07,.025,.012,trim);
+const btn=box('ENGINE START',.28,.91,-.48,.12,.06,.12,red);btn.userData.start=true;
+box('left mirror',-1.22,1.16,-.45,.25,.12,.22,black);box('right mirror',1.22,1.16,-.45,.25,.12,.22,black);
+box('windshield lower',0,1.48,-1.05,1.8,.055,.07,trim);box('left pillar',-.87,1.68,-1.05,.055,.48,.055,trim);box('right pillar',.87,1.68,-1.05,.055,.48,.055,trim);box('hood',0,.65,-2.05,1.7,.12,1.6,black);
+for(let x of [-.62,.62])for(let z of [-2.5,-1.6])box('hood line',x,.72,z,.025,.015,.8,trim);
+let ctx=null,engineOn=false,osc1,osc2,gain;
+function toggleEngine(){if(!ctx)ctx=new(window.AudioContext||window.webkitAudioContext)();ctx.resume();if(engineOn){engineOn=false;if(gain)gain.gain.setTargetAtTime(0,ctx.currentTime,.15);document.getElementById('engine').textContent='🔑 Motor starten';return}
+engineOn=true;document.getElementById('engine').textContent='⏹ Motor ausschalten';osc1=ctx.createOscillator();osc2=ctx.createOscillator();gain=ctx.createGain();let filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=420;let mix=ctx.createGain();mix.gain.value=.18;osc1.type='sawtooth';osc2.type='triangle';osc1.frequency.value=72;osc2.frequency.value=36;osc1.connect(mix);osc2.connect(mix);mix.connect(filter);filter.connect(gain);gain.connect(ctx.destination);gain.gain.setValueAtTime(.0001,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.24,ctx.currentTime+.12);osc1.frequency.setValueAtTime(72,ctx.currentTime);osc1.frequency.exponentialRampToValueAtTime(155,ctx.currentTime+.8);osc1.frequency.exponentialRampToValueAtTime(72,ctx.currentTime+1.7);osc2.frequency.setValueAtTime(36,ctx.currentTime);osc2.frequency.exponentialRampToValueAtTime(77,ctx.currentTime+.8);osc2.frequency.exponentialRampToValueAtTime(36,ctx.currentTime+1.7)}
+document.getElementById('engine').onclick=toggleEngine;document.getElementById('enter').onclick=()=>document.getElementById('cover').style.display='none';document.getElementById('reset').onclick=()=>{camera.rotation.set(0,0,0)};
+document.getElementById('vr').onclick=async()=>{try{if(!navigator.xr)throw 0;let s=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor']});await renderer.xr.setSession(s)}catch(e){alert('VR vereist de Meta Quest-browser en een HTTPS-link.');}};
+let drag=false,lx=0,ly=0,yaw=0,pitch=0;renderer.domElement.onpointerdown=e=>{drag=true;lx=e.clientX;ly=e.clientY};addEventListener('pointerup',()=>drag=false);renderer.domElement.onpointermove=e=>{if(!drag||renderer.xr.isPresenting)return;yaw-=(e.clientX-lx)*.004;pitch=Math.max(-1.15,Math.min(1.15,pitch-(e.clientY-ly)*.004));camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);lx=e.clientX;ly=e.clientY};
+renderer.setAnimationLoop(()=>renderer.render(scene,camera));addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script></body></html>
